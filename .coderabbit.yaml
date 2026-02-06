@@ -1,0 +1,153 @@
+# Project Chimera - AI Code Review Configuration
+# CodeRabbit AI Reviewer Configuration
+
+# This configuration instructs the AI reviewer to check for:
+# 1. Spec Alignment - Code must match specifications in specs/
+# 2. Security Vulnerabilities - No hardcoded secrets, proper auth
+# 3. Test Coverage - Tests should exist for new functionality
+# 4. Documentation - Code must be documented
+
+language: en
+
+early_access: false
+
+reviews:
+  profile: "chimeric"  # Custom profile for Chimera project
+  
+  # High-level review settings
+  high_level_summary: true
+  auto_review:
+    enabled: true
+    auto_title: true
+    drafts: false
+  
+  # What to review
+  collapse_walkthrough: false
+  consider_testing: true
+  
+  # Code review criteria
+  review_status: true
+  
+  # Annotations
+  annotation_based_summary: true
+  
+  # Comment style
+  comment_style: block
+  
+  # Review scope
+  file_exclusion_patterns:
+    - "*.pyc"
+    - "*.pyo"
+    - "__pycache__/**"
+    - ".git/**"
+    - "*.egg-info/**"
+    - "node_modules/**"
+    - ".venv/**"
+
+# Custom instructions for the AI reviewer
+review_instructions:
+  # Spec Alignment Check
+  - name: "Spec Alignment"
+    instruction: |
+      Verify that code changes align with the specifications in the `specs/` directory.
+      - Check API contracts match specs/technical.md
+      - Verify skill interfaces match specs/functional.md
+      - Ensure database schemas align with specs/technical.md
+      - Flag any code that deviates from specs without justification
+    enabled: true
+  
+  # Security Check
+  - name: "Security Vulnerabilities"
+    instruction: |
+      Check for security issues:
+      - No hardcoded API keys or secrets
+      - No use of deprecated cryptographic methods
+      - Proper input validation and sanitization
+      - Authentication and authorization checks present
+      - SQL injection and XSS prevention
+    enabled: true
+  
+  # Test Coverage Check
+  - name: "Test Coverage"
+    instruction: |
+      Verify test coverage for code changes:
+      - New functionality must have corresponding tests
+      - Tests should use the contracts defined in specs/
+      - Failing tests should be documented
+      - Integration tests for skill workflows
+    enabled: true
+  
+  # Documentation Check
+  - name: "Documentation"
+    instruction: |
+      Check documentation quality:
+      - All public functions have docstrings
+      - Complex logic has inline comments
+      - API endpoints are documented
+      - Database schemas are documented
+    enabled: true
+
+# Chat configuration
+chat:
+  auto_reply: false
+
+# Workflow configuration
+workflows:
+  # Enable spec-aware review workflow
+  spec_aware_review:
+    enabled: true
+    # Paths to spec files to check
+    spec_paths:
+      - "specs/"
+    # How to check spec alignment
+    check_mode: "comprehensive"
+  
+  # Enable security-focused review workflow
+  security_review:
+    enabled: true
+    # Severity thresholds
+    severity_thresholds:
+      high: true
+      critical: true
+    # Check for secrets
+    scan_for_secrets: true
+
+# Path filters for different review types
+path_filters:
+  "**/*.py":
+    - security
+    - spec_alignment
+    - test_coverage
+    - documentation
+  "**/Dockerfile":
+    - security
+    - best_practices
+  "**/*.md":
+    - documentation
+    - readability
+
+# Categories for review feedback
+categories:
+  - name: "Spec Violation"
+    description: "Code that deviates from specifications"
+  - name: "Security Issue"
+    description: "Potential security vulnerability"
+  - name: "Missing Test"
+    description: "Code without corresponding tests"
+  - name: "Documentation"
+    description: "Documentation issues"
+  - name: "Best Practice"
+    description: "Code quality improvement suggestion"
+  - name: "Performance"
+    description: "Performance optimization opportunity"
+
+# Critical path checks (must pass)
+critical_checks:
+  - "security"
+  - "spec_alignment"
+
+# Summary settings
+summary:
+  abstract_symbol: "🐍"
+  status_symbol: "✅"
+  section_symbol: "##"

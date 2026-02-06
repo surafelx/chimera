@@ -1,0 +1,167 @@
+# Project Chimera - AI Agent Rules
+
+**Version:** 1.0.0  
+**Date:** 2025-02-04
+
+---
+
+## Project Context
+
+This is **Project Chimera**, an Autonomous AI Influencer system. The Chimera Agent is a digital entity capable of:
+- Researching trends across TikTok, YouTube, and Twitter
+- Generating engaging content (text, video, audio)
+- Managing social media engagement automatically
+- Integrating with the OpenClaw Agent Social Network
+- Operating safely with human-in-the-loop approval
+
+**Repository Structure:**
+```
+chimera/
+├── specs/           # Executable specifications (source of truth)
+├── skills/          # Runtime skills the agent can call
+├── tests/           # TDD tests (must fail before implementation)
+├── research/        # Architecture and research documents
+├── Dockerfile       # Containerization
+├── Makefile         # Standardized commands
+└── .github/workflows/  # CI/CD pipeline
+```
+
+---
+
+## Prime Directives
+
+### 1. NEVER Generate Code Without Checking Specs First
+Before writing any code, you MUST:
+1. Read the relevant specification in `specs/` directory
+2. Verify the API contract matches the spec
+3. Check if tests exist in `tests/` directory
+4. Ensure the implementation aligns with the defined schema
+
+**If specs are missing or unclear, ask for clarification instead of guessing.**
+
+### 2. Traceability is Mandatory
+Every code change must be traceable to a specification:
+- Reference the spec file and section in every commit message
+- Add comments linking code to specs: `# See: specs/technical.md#api-contracts`
+- If you're unsure about a requirement, ask before implementing
+
+### 3. Git Hygiene
+- Commit early, commit often (minimum 2x/day)
+- Write meaningful commit messages: "feat(trends): implement fetch API per specs/technical.md"
+- Create feature branches from main
+- Keep commits atomic and focused
+
+---
+
+## Development Workflow
+
+### Before Writing Code
+1. ✅ Read relevant specs in `specs/` directory
+2. ✅ Check existing tests in `tests/` directory
+3. ✅ Verify API contracts match specifications
+4. ✅ Plan your implementation approach
+5. ✅ Ask clarifying questions if specs are unclear
+
+### While Writing Code
+1. Follow the API contracts defined in `specs/technical.md`
+2. Use type hints and document functions
+3. Add unit tests alongside implementation
+4. Update specs if requirements change (never one-way)
+
+### After Writing Code
+1. Run `make test` to verify implementation
+2. Run `make lint` to check code quality
+3. Ensure all tests pass
+4. Commit with reference to specs
+
+---
+
+## Skill vs. Tool Distinction
+
+### Skills (Runtime Capabilities)
+Skills are reusable functions/scripts the Chimera Agent calls at runtime:
+- Located in `skills/` directory
+- Have defined Input/Output contracts
+- Example: `skill_download_video`, `skill_transcribe_audio`
+
+**Never hardcode skill logic in agent code.**
+
+### MCP Servers (Developer Tools)
+MCP servers are external bridges for development:
+- Help YOU develop (git, filesystem, etc.)
+- Not directly callable by the Chimera Agent
+- Used by developers in the IDE
+
+**Example:** `git-mcp` for version control, `filesystem-mcp` for file editing
+
+---
+
+## Testing Strategy
+
+### Test-Driven Development (TDD)
+1. Tests in `tests/` define the "empty slots" the AI must fill
+2. Tests SHOULD fail when first created (this is success!)
+3. Implementation must make tests pass
+4. Never delete or modify tests to make them pass
+
+### Test Categories
+- **Unit Tests**: Test individual skills and functions
+- **Integration Tests**: Test API contract compliance
+- **E2E Tests**: Test full agent workflows
+
+---
+
+## Code Style & Standards
+
+### Python (Primary Language)
+- Follow PEP 8
+- Use type hints for all function signatures
+- Use `pydantic` for data validation
+- Maximum line length: 100 characters
+
+### Documentation
+- Use docstrings for all public functions
+- Include examples in docstrings
+- Keep `specs/` as the source of truth
+- Update `research/` for architectural decisions
+
+---
+
+## Security & Safety
+
+### Never Hardcode Secrets
+- Use environment variables for all API keys
+- Never commit `.env` files or credentials
+- Use the `secrets` module for sensitive data
+
+### Human-in-the-Loop Safety Layer
+- All content must pass safety layer before posting
+- Human approval required for:
+  - First post from new persona
+  - Content flagged as sensitive
+  - Engagement responses to negative comments
+
+---
+
+## Example: Correct Implementation Flow
+
+**Task: Implement trend fetcher**
+
+1. Read `specs/technical.md` → Understand API contract
+2. Read `specs/functional.md` → Understand user story
+3. Check `tests/test_trend_fetcher.py` → See expected behavior
+4. Implement in `skills/skill_fetch_trends.py`
+5. Run `make test` → Verify implementation
+6. Commit: "feat(trends): implement fetch_trends per specs/functional.md#1.1"
+
+---
+
+## Questions & Clarifications
+
+If any requirement is unclear:
+1. Check `specs/` first
+2. Check `research/` for architectural context
+3. Ask for clarification before implementing
+4. Document the answer in the appropriate spec file
+
+**Remember: Ambiguity is the enemy of AI. Clarify first, implement second.**

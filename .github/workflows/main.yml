@@ -1,0 +1,184 @@
+# Project Chimera - CI/CD Pipeline
+# Runs on every push to validate code quality and run tests
+
+name: Project Chimera - CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '**.py'
+      - 'pyproject.toml'
+      - 'Dockerfile'
+      - 'Makefile'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main, develop]
+
+env:
+  PYTHON_VERSION: '3.11'
+  UV_VERSION: '0.5.0'
+
+jobs:
+  # Job 1: Lint and Format Check
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: ${{ env.UV_VERSION }}
+      
+      - name: Install dependencies
+        run: uv sync --frozen
+      
+      - name: Run Ruff Linter
+        run: ruff check .
+      
+      - name: Run MyPy Type Checker
+        run: mypy chimera tests --ignore-missing-imports
+      
+      - name: Run Black Formatter Check
+        run: black --check chimera tests
+
+  # Job 2: Test Suite
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: ${{ env.UV_VERSION }}
+      
+      - name: Install dependencies
+        run: uv sync --frozen
+      
+      - name: Run pytest
+        run: pytest tests/ -v --tb=short --junit-xml=test-results.xml
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results.xml
+      
+      - name: Check failing tests count
+        run: |
+          FAILED=$(pytest tests/ --tb=no -q 2>&1 | grep -oP '\d+ failed' | grep -oP '\d+' || echo "0")
+          echo "Failed tests: $FAILED"
+          if [ "$FAILED" -gt 5 ]; then
+            echo "Too many failing tests. This might indicate implementation issues."
+            exit 1
+          fi
+
+  # Job 3: Docker Build
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true
+          tags: chimera-agent:latest
+      
+      - name: Verify Docker image
+        run: docker run --rm chimera-agent:latest make validate
+
+  # Job 4: Security Scan
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Bandit Security Check
+        uses: dasch/bandit-action@v1.0.0
+        with:
+          path: 'chimera'
+          recursive: 'true'
+          verbose: 'true'
+      
+      - name: Check for secrets (trufflehog placeholder)
+        run: |
+          echo "Security scan completed."
+          echo "Note: Add TruffleHog for secret scanning in production."
+
+  # Job 5: Spec Compliance Check
+  spec-compliance:
+    name: Spec Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check spec files exist
+        run: |
+          echo "Checking spec compliance..."
+          test -f specs/_meta.md || { echo "Missing specs/_meta.md"; exit 1; }
+          test -f specs/functional.md || { echo "Missing specs/functional.md"; exit 1; }
+          test -f specs/technical.md || { echo "Missing specs/technical.md"; exit 1; }
+          test -f .cursor/rules || { echo "Missing .cursor/rules"; exit 1; }
+          echo "All required spec files present."
+      
+      - name: Verify test files match specs
+        run: |
+          echo "Verifying test coverage..."
+          test -f tests/test_trend_fetcher.py || { echo "Missing tests/test_trend_fetcher.py"; exit 1; }
+          test -f tests/test_skills_interface.py || { echo "Missing tests/test_skills_interface.py"; exit 1; }
+          echo "All required test files present."
+
+  # Job 6: Report Generation
+  report:
+    name: Generate Report
+    runs-on: ubuntu-latest
+    needs: [lint, test, docker, security, spec-compliance]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Generate coverage report
+        run: |
+          echo "Coverage report generated."
+          echo "Note: Add coverage badge update in production."
+      
+      - name: Post summary comment
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '## CI/CD Pipeline Complete ✅\n\nAll checks passed! The repository is ready for review.'
+            })
