@@ -74,7 +74,7 @@ I need to review and approve content...
 "The meat — API contracts, database schema, and skill definitions."
 
 **[Show API contract example]**
-```
+``` 
 POST /api/v1/trends/fetch
 Request: { platforms, category, limit, time_range }
 Response: { status, trends, timestamp }
